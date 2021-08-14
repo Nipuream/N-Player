@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import java.io.File;
+import java.nio.ByteBuffer;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,6 +29,9 @@ public class MainActivity extends AppCompatActivity {
      */
     public native String stringFromJNI();
 
+    public native void readByteBuffer(ByteBuffer buf);
+
+
     public void test(View view) {
         File file = new File("/sdcard/1080.mp4");
         if(file.exists()){
@@ -37,5 +41,12 @@ public class MainActivity extends AppCompatActivity {
             TextView tv = findViewById(R.id.sample_text);
             tv.setText(stringFromJNI());
         }
+    }
+
+    public void test1(View view) {
+
+        ByteBuffer buf = ByteBuffer.allocateDirect(100);
+        buf.put("nipuream".getBytes());
+        readByteBuffer(buf);
     }
 }

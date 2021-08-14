@@ -85,7 +85,7 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
     }
 
     AVCodecContext *vc_context = avcodec_alloc_context3(vc);
-    avcodec_parameters_copy(vc_context,ic->streams[videoStream]->codecpar);
+    avcodec_parameters_to_context(vc_context, ic->streams[videoStream]->codecpar);
     vc_context->thread_count = 1;
     //打开视频解码器
     ret = avcodec_open2(vc_context, 0, 0);
@@ -101,7 +101,7 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
         return env->NewStringUTF(hello.c_str());
     }
     AVCodecContext *ac_context = avcodec_alloc_context3(ac);
-    avcodec_parameters_copy(ac_context,ic->streams[audioStream]->codecpar);
+    avcodec_parameters_to_context(ac_context,ic->streams[audioStream]->codecpar);
     ac_context->thread_count = 1;
     //打开音频解码器
     ret = avcodec_open2(ac_context, 0, 0);
@@ -131,4 +131,17 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
     avformat_close_input(&ic);
 
     return env->NewStringUTF(hello.c_str());
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_nipuream_n_1player_MainActivity_readByteBuffer(JNIEnv *env, jobject thiz, jobject buf) {
+
+    jbyte* jbuf = (jbyte*)env->GetDirectBufferAddress(buf);
+    jlong capcity = (jlong)env->GetDirectBufferCapacity(buf);
+
+    if(jbuf != NULL){
+        LOGI("buf : %s, capcity : %d", jbuf, capcity);
+    }
 }

@@ -1,11 +1,15 @@
 package com.nipuream.n_player;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
+import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final String TAG = "MainActivity";
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -16,10 +20,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // Example of a call to a native method
-        TextView tv = findViewById(R.id.sample_text);
-        tv.setText(stringFromJNI());
     }
 
     /**
@@ -27,4 +27,15 @@ public class MainActivity extends AppCompatActivity {
      * which is packaged with this application.
      */
     public native String stringFromJNI();
+
+    public void test(View view) {
+        File file = new File("/sdcard/1080.mp4");
+        if(file.exists()){
+            Log.i(TAG,"file exits.");
+
+            // Example of a call to a native method
+            TextView tv = findViewById(R.id.sample_text);
+            tv.setText(stringFromJNI());
+        }
+    }
 }

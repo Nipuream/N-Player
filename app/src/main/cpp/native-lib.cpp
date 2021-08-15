@@ -4,12 +4,33 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavcodec/jni.h>
 }
 
 #include "include/base.h"
 
-inline static double r2d(AVRational r){
+
+
+static inline double r2d(AVRational r){
     return r.num == 0 || r.den == 0 ? 0.: (double)r.num/(double)r.den;
+}
+
+long long GetNowMs(){
+
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    int sec = tv.tv_sec % 360000;
+    long long t = sec * 1000 + tv.tv_usec / 1000;
+    return t;
+}
+
+extern "C" JNIEXPORT
+jint JNI_OnLoad(JavaVM *vm, void *unused) {
+
+    LOGI("jni onload ....");
+    av_jni_set_java_vm(vm, 0);
+    return JNI_VERSION_1_4;
 }
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -77,8 +98,8 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
 
 
     //视频解码器初始化
-    AVCodec *vc = avcodec_find_decoder(ic->streams[videoStream]->codecpar->codec_id); //软解码
-//    AVCodec *codec = avcodec_find_encoder_by_name("h264_mediacodec");
+//    AVCodec *vc = avcodec_find_decoder(ic->streams[videoStream]->codecpar->codec_id); //软解码
+    AVCodec *vc = avcodec_find_decoder_by_name("h264_mediacodec");
     if(!vc){
         LOGW("video avcodec find failed!");
         return env->NewStringUTF(hello.c_str());
@@ -121,22 +142,23 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
         if(ret != 0){
             LOGW("read in end.");
             int pos = r2d(ic->streams[videoStream]->time_base) * 20;
+            //seek
             av_seek_frame(ic, videoStream, ic->duration/2, AVSEEK_FLAG_BACKWARD|AVSEEK_FLAG_FRAME);
             continue;
         }
 
         LOGW("stream = %d, size = %d, pts = %lld, flag = %d", packet->stream_index, packet->size,
                 packet->pts, packet->flags);
-        av_packet_unref(packet); //释放data空间
-
 
         AVCodecContext *aacontext = vc_context;
-        if(packet->stream_index != AVMEDIA_TYPE_VIDEO){
+        if(packet->stream_index == AVMEDIA_TYPE_AUDIO){
             aacontext = ac_context;
         }
 
         //发送解码队列，让ffmpeg去解码
         ret = avcodec_send_packet(aacontext, packet);
+        av_packet_unref(packet); //释放data空间
+
         if(ret != 0){
             LOGW("send packet decode failed.");
             continue;
@@ -154,7 +176,6 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
 
     //关闭上下文
     avformat_close_input(&ic);
-
     return env->NewStringUTF(hello.c_str());
 }
 

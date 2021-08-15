@@ -113,6 +113,9 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
 
     //读取帧数据
     AVPacket* packet = av_packet_alloc();
+    //解码后的帧数据
+    AVFrame* frame = av_frame_alloc();
+
     for(;;){
         int ret = av_read_frame(ic,packet);
         if(ret != 0){
@@ -121,9 +124,31 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
             av_seek_frame(ic, videoStream, ic->duration/2, AVSEEK_FLAG_BACKWARD|AVSEEK_FLAG_FRAME);
             continue;
         }
+
         LOGW("stream = %d, size = %d, pts = %lld, flag = %d", packet->stream_index, packet->size,
                 packet->pts, packet->flags);
         av_packet_unref(packet); //释放data空间
+
+
+        AVCodecContext *aacontext = vc_context;
+        if(packet->stream_index != AVMEDIA_TYPE_VIDEO){
+            aacontext = ac_context;
+        }
+
+        //发送解码队列，让ffmpeg去解码
+        ret = avcodec_send_packet(aacontext, packet);
+        if(ret != 0){
+            LOGW("send packet decode failed.");
+            continue;
+        }
+
+        for(;;){
+            ret = avcodec_receive_frame(aacontext, frame);
+            if(ret != 0){
+                break;
+            }
+            LOGI("receive frame pts : %lld", frame->pts);
+        }
     }
 
 

@@ -4,6 +4,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
 #include <libavcodec/jni.h>
 }
 
@@ -131,6 +132,11 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
         return env->NewStringUTF(hello.c_str());
     }
 
+    //初始化像素格式转换上下文
+    SwsContext *vctx = NULL;
+    int outWidth = 1440;
+    int outHeight = 920;
+    uint8_t * rgb = new uint8_t[1920 * 1080 * 4];
 
     //读取帧数据
     AVPacket* packet = av_packet_alloc();
@@ -148,7 +154,7 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
         }
 
         LOGW("stream = %d, size = %d, pts = %lld, flag = %d", packet->stream_index, packet->size,
-                packet->pts, packet->flags);
+             packet->pts, packet->flags);
 
         AVCodecContext *aacontext = vc_context;
         if(packet->stream_index == AVMEDIA_TYPE_AUDIO){
@@ -170,6 +176,34 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
                 break;
             }
             LOGI("receive frame pts : %lld", frame->pts);
+
+            //视频图像数据处理
+            if(aacontext == vc_context){
+
+                vctx = sws_getCachedContext(vctx,
+                                            frame->width,
+                                            frame->height,
+                                            (AVPixelFormat)frame->format,
+                                            outWidth,
+                                            outHeight,
+                                            AV_PIX_FMT_RGBA,
+                                            SWS_FAST_BILINEAR,
+                                            0,0,0);
+
+                LOGW("frame width=%d, height=%d, format=%d", frame->width, frame->height, frame->format);
+
+
+                if(!vctx){
+                    LOGW("sws_getCacheContext failed.");
+                } else {
+                    uint8_t  *data[AV_NUM_DATA_POINTERS] = {0};
+                    data[0] = rgb;
+                    int lines[AV_NUM_DATA_POINTERS] = {0};
+                    lines[0] = outWidth * 4;
+                    int h = sws_scale(vctx, frame->data, frame->linesize, 0, frame->height,data, lines);
+                    LOGW("sws_scale : %d", h);
+                }
+            }
         }
     }
 

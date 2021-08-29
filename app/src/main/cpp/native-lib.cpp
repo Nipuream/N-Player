@@ -5,6 +5,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
 #include <libavcodec/jni.h>
 }
 
@@ -137,6 +138,26 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
     int outWidth = 1440;
     int outHeight = 920;
     uint8_t * rgb = new uint8_t[1920 * 1080 * 4];
+    uint8_t *pcm = new uint8_t[48000 * 4 * 2];
+
+    //音频重采样上下文初始化
+    SwrContext *actx = swr_alloc();
+    actx = swr_alloc_set_opts(actx,
+            av_get_default_channel_layout(ac_context->channels),
+            AV_SAMPLE_FMT_S16,
+            ac_context->sample_rate,
+            av_get_default_channel_layout(ac_context->channels),
+            ac_context->sample_fmt,
+            ac_context->sample_rate,
+            0,0
+            );
+
+    ret = swr_init(actx);
+    if(ret != 0){
+        LOGW("swr_init failed.");
+    } else {
+        LOGW("swr_init successfully.");
+    }
 
     //读取帧数据
     AVPacket* packet = av_packet_alloc();
@@ -204,8 +225,22 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
                     LOGW("sws_scale : %d", h);
                 }
             }
+
+            if(aacontext == ac_context){
+
+                uint8_t *out[2] = {0};
+                out[0] = pcm;
+
+                //audio resample.
+                int len = swr_convert(actx, out, frame->nb_samples, (const uint8_t **)frame->data, frame->nb_samples);
+                LOGW("swr_convert len : %d", len);
+            }
         }
     }
+
+
+    delete[] rgb;
+    delete[] pcm;
 
 
     //关闭上下文

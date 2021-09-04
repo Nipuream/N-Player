@@ -10,6 +10,8 @@ extern "C" {
 }
 
 #include "include/base.h"
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
 
 
 
@@ -42,6 +44,27 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
     std::string hello = "Hello from C++";
 
     hello += avcodec_configuration();
+    return env->NewStringUTF(hello.c_str());
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_nipuream_n_1player_MainActivity_readByteBuffer(JNIEnv *env, jobject thiz, jobject buf) {
+
+    jbyte* jbuf = (jbyte*)env->GetDirectBufferAddress(buf);
+    jlong capcity = (jlong)env->GetDirectBufferCapacity(buf);
+
+    if(jbuf != NULL){
+        LOGI("buf : %s, capcity : %d", jbuf, capcity);
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_nipuream_n_1player_NPlayer_open(JNIEnv *env, jobject thiz, jstring url, jobject surface) {
+
+    const char* path = env->GetStringUTFChars(url, JNI_FALSE);
 
     //初始化解封装
     av_register_all();
@@ -52,12 +75,11 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
 
     //打开文件
     AVFormatContext *ic = NULL;
-    char path[] = "/sdcard/1080.mp4";
     int ret = avformat_open_input(&ic, path, 0, 0);
 
     if(ret != 0){
         LOGW("avformat_open_input failed !: %s", av_err2str(ret));
-        return env->NewStringUTF(hello.c_str());
+        return ;
     }
 
     //获取流信息,如果文件没有头部信息，可以通过这个方法读取一部分流信息，获取文件信息
@@ -104,7 +126,7 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
     AVCodec *vc = avcodec_find_decoder_by_name("h264_mediacodec");
     if(!vc){
         LOGW("video avcodec find failed!");
-        return env->NewStringUTF(hello.c_str());
+        return ;
     }
 
     AVCodecContext *vc_context = avcodec_alloc_context3(vc);
@@ -114,14 +136,14 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
     ret = avcodec_open2(vc_context, 0, 0);
     if(ret != 0){
         LOGW("avcodec_open2 video failed!");
-        return env->NewStringUTF(hello.c_str());
+        return ;
     }
 
     //音频解码器初始化
     AVCodec *ac = avcodec_find_decoder(ic->streams[audioStream]->codecpar->codec_id); //软解码
     if(!ac){
         LOGW("audio avcodec find failed !");
-        return env->NewStringUTF(hello.c_str());
+        return ;
     }
     AVCodecContext *ac_context = avcodec_alloc_context3(ac);
     avcodec_parameters_to_context(ac_context,ic->streams[audioStream]->codecpar);
@@ -130,27 +152,27 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
     ret = avcodec_open2(ac_context, 0, 0);
     if(ret != 0){
         LOGW("avcodec open2 audio failed!");
-        return env->NewStringUTF(hello.c_str());
+        return ;
     }
 
     //初始化像素格式转换上下文
     SwsContext *vctx = NULL;
-    int outWidth = 1440;
-    int outHeight = 920;
-    uint8_t * rgb = new uint8_t[1920 * 1080 * 4];
+    int outWidth = 1280;
+    int outHeight = 720;
+    uint8_t *rgb = new uint8_t[1300 * 1000 * 4];
     uint8_t *pcm = new uint8_t[48000 * 4 * 2];
 
     //音频重采样上下文初始化
     SwrContext *actx = swr_alloc();
     actx = swr_alloc_set_opts(actx,
-            av_get_default_channel_layout(ac_context->channels),
-            AV_SAMPLE_FMT_S16,
-            ac_context->sample_rate,
-            av_get_default_channel_layout(ac_context->channels),
-            ac_context->sample_fmt,
-            ac_context->sample_rate,
-            0,0
-            );
+                              av_get_default_channel_layout(ac_context->channels),
+                              AV_SAMPLE_FMT_S16,
+                              ac_context->sample_rate,
+                              av_get_default_channel_layout(ac_context->channels),
+                              ac_context->sample_fmt,
+                              ac_context->sample_rate,
+                              0,0
+    );
 
     ret = swr_init(actx);
     if(ret != 0){
@@ -164,14 +186,24 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
     //解码后的帧数据
     AVFrame* frame = av_frame_alloc();
 
+    ANativeWindow *native_window = ANativeWindow_fromSurface(env, surface);
+    if(!native_window){
+        LOGI("native create failed...");
+    }
+    ANativeWindow_setBuffersGeometry(native_window, outWidth, outHeight, WINDOW_FORMAT_RGBA_8888);
+    ANativeWindow_Buffer wbuf;
+
     for(;;){
         int ret = av_read_frame(ic,packet);
         if(ret != 0){
             LOGW("read in end.");
+            /*
             int pos = r2d(ic->streams[videoStream]->time_base) * 20;
             //seek
             av_seek_frame(ic, videoStream, ic->duration/2, AVSEEK_FLAG_BACKWARD|AVSEEK_FLAG_FRAME);
             continue;
+             */
+            break;
         }
 
         LOGW("stream = %d, size = %d, pts = %lld, flag = %d", packet->stream_index, packet->size,
@@ -223,6 +255,13 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
                     lines[0] = outWidth * 4;
                     int h = sws_scale(vctx, frame->data, frame->linesize, 0, frame->height,data, lines);
                     LOGW("sws_scale : %d", h);
+
+                    if(ANativeWindow_lock(native_window, &wbuf, 0)){
+                        LOGI("lock faile...");
+                    }
+                    void  *dst_buf = wbuf.bits;
+                    memcpy(dst_buf, rgb, outWidth * outHeight* 4);
+                    ANativeWindow_unlockAndPost(native_window);
                 }
             }
 
@@ -243,20 +282,10 @@ Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
     delete[] pcm;
 
 
+    //释放窗口
+//    ANativeWindow_release(native_window);
     //关闭上下文
     avformat_close_input(&ic);
-    return env->NewStringUTF(hello.c_str());
-}
 
-
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_nipuream_n_1player_MainActivity_readByteBuffer(JNIEnv *env, jobject thiz, jobject buf) {
-
-    jbyte* jbuf = (jbyte*)env->GetDirectBufferAddress(buf);
-    jlong capcity = (jlong)env->GetDirectBufferCapacity(buf);
-
-    if(jbuf != NULL){
-        LOGI("buf : %s, capcity : %d", jbuf, capcity);
-    }
+    env->ReleaseStringUTFChars(url, path);
 }

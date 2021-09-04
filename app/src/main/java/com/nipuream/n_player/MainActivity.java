@@ -1,13 +1,15 @@
 package com.nipuream.n_player;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Surface;
 import android.view.View;
-import android.widget.TabHost;
-import android.widget.TextView;
-import java.io.File;
+import android.view.Window;
+import android.view.WindowManager;
+
 import java.nio.ByteBuffer;
 
 public class MainActivity extends AppCompatActivity {
@@ -23,6 +25,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //remove title bar.
+        supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
+        //full screen.
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        //set display landscape.
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
         setContentView(R.layout.activity_main);
         player = findViewById(R.id.n_player);
     }

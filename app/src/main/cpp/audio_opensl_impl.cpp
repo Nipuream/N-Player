@@ -47,6 +47,24 @@ AudioOpenSlPlayer::~AudioOpenSlPlayer() {
 
     LOGI("destroy audio open sl player.");
     player_init_state = false;
+
+    if(player) {
+        (*player)->Destroy(player);
+        player = nullptr;
+        pcmQueue = nullptr;
+        playItf = nullptr;
+    }
+
+    if(mixOutput) {
+        (*mixOutput)->Destroy(mixOutput);
+        mixOutput = nullptr;
+    }
+
+    if(engineSl) {
+        (*engineSl)->Destroy(engineSl);
+        engineSl = nullptr;
+        engineItf = nullptr;
+    }
 }
 
 int AudioOpenSlPlayer::createPlayer() {
@@ -69,7 +87,6 @@ int AudioOpenSlPlayer::createPlayer() {
         return GET_SL_I_ENGINE_FAILED;
     }
 
-    SLObjectItf mixOutput;
     ret = (*engineItf)->CreateOutputMix(engineItf, &mixOutput, 0, nullptr, nullptr);
     if(ret != SL_RESULT_SUCCESS) {
         LOGW("create output mix failed.");

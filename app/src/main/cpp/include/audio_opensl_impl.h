@@ -49,6 +49,8 @@ private:
     SLObjectItf engineSl;
     SLEngineItf engineItf;
 
+    SLObjectItf mixOutput;
+
     SLObjectItf  player; //通用型的object.
     SLPlayItf playItf; // player接口
     SLAndroidSimpleBufferQueueItf pcmQueue;

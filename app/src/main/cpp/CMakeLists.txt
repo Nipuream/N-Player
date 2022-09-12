@@ -41,7 +41,9 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
-             native-lib.cpp )
+             audio_opensl_impl.cpp
+             native-lib.cpp
+           )
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -62,7 +64,8 @@ find_library( # Sets the name of the path variable.
 
 target_link_libraries( # Specifies the target library.
                        native-lib
-                       GLESv2 EGL
+                       GLESv2
+                       EGL
                        OpenSLES
                        android
                        avcodec avformat avutil swscale swresample

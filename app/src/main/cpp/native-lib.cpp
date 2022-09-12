@@ -13,6 +13,8 @@ extern "C" {
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 
+#include "include/audio_opensl_impl.h"
+#include <unistd.h>
 
 
 static inline double r2d(AVRational r){
@@ -37,13 +39,24 @@ jint JNI_OnLoad(JavaVM *vm, void *unused) {
     return JNI_VERSION_1_4;
 }
 
+
+std::unique_ptr<AudioOpenSlPlayer> sl_audio_player;
+
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_nipuream_n_1player_MainActivity_stringFromJNI(
         JNIEnv* env,
         jobject /* this */) {
     std::string hello = "Hello from C++";
-
     hello += avcodec_configuration();
+//    testAudio();
+
+    sl_audio_player = AudioOpenSlPlayer::create_audio_sl_player();
+    if(sl_audio_player) {
+        int ret = sl_audio_player->startPlay();
+        LOGI("start play ret : %d",  ret);
+    }
+
+
     return env->NewStringUTF(hello.c_str());
 }
 
@@ -59,6 +72,7 @@ Java_com_nipuream_n_1player_MainActivity_readByteBuffer(JNIEnv *env, jobject thi
         LOGI("buf : %s, capcity : %d", jbuf, capcity);
     }
 }
+
 
 extern "C"
 JNIEXPORT void JNICALL

@@ -7,6 +7,7 @@
 
 
 #include <android/log.h>
+#include <string>
 
 #define TAG "N-Player"
 
@@ -16,4 +17,12 @@
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN,TAG,__VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,TAG,__VA_ARGS__)
 #define LOGF(...) __android_log_print(ANDROID_LOG_FATAL,TAG,__VA_ARGS__)
+
+
+
+
+
+
+
+
 #endif //N_PLAYER_BASE_H

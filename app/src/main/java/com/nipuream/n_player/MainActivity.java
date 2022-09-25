@@ -81,13 +81,13 @@ public class MainActivity extends AppCompatActivity {
 
     public void test(View view) {
 
-        new Thread(){
-            @Override
-            public void run() {
-                super.run();
-                stringFromJNI();
-            }
-        }.start();
+//        new Thread(){
+//            @Override
+//            public void run() {
+//                super.run();
+//                stringFromJNI();
+//            }
+//        }.start();
 
 //        File file = new File("/sdcard/1080.mp4");
 //        if(file.exists()){
@@ -98,15 +98,15 @@ public class MainActivity extends AppCompatActivity {
 //            tv.setText(stringFromJNI());
 //        }
 
-//        new Thread(){
-//            @Override
-//            public void run() {
-//                super.run();
-//                Surface surface = player.getHolder().getSurface();
-//                Log.i(TAG, " surface address : "+ surface);
-//                player.open("/sdcard/1080.mp4", surface);
-//            }
-//        }.start();
+        new Thread(){
+            @Override
+            public void run() {
+                super.run();
+                Surface surface = player.getHolder().getSurface();
+                Log.i(TAG, " surface address : "+ surface);
+                player.open("/sdcard/out.yuv", surface);
+            }
+        }.start();
     }
 
     public void test1(View view) {

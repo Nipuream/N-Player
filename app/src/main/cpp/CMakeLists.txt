@@ -42,6 +42,7 @@ add_library( # Sets the name of the library.
 
              # Provides a relative path to your source file(s).
              audio_opensl_impl.cpp
+             video_opengl_impl.cpp
              native-lib.cpp
            )
 

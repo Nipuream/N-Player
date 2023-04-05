@@ -20,9 +20,4 @@
 
 
 
-
-
-
-
-
 #endif //N_PLAYER_BASE_H

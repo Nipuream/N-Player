@@ -56,6 +56,8 @@ static const char *fragYUV420P = GET_STR(
         }
 );
 
+JavaVM* m_jvm;
+
 GLint initShader(const char *code, GLint type) {
 
     //申请创建shader
@@ -82,10 +84,8 @@ GLint initShader(const char *code, GLint type) {
         LOGW("glCompile shader failed.");
         return GL_FALSE;
     }
-
     return sh;
 }
-
 
 
 static inline double r2d(AVRational r){
@@ -107,6 +107,7 @@ jint JNI_OnLoad(JavaVM *vm, void *unused) {
 
     LOGI("jni onload ....");
     av_jni_set_java_vm(vm, 0);
+    m_jvm = vm;
     return JNI_VERSION_1_4;
 }
 
